@@ -1,36 +1,85 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Chelsea Hub
 
-## Getting Started
+Chelsea Hubは、Chelsea Football Clubの選手やクラブ情報を日本語で紹介する、個人制作のファンデータベースです。
 
-First, run the development server:
+公開URL: https://chelsea-hub.vercel.app/
+
+## 制作目的
+
+チェルシーに関する基本情報を、見やすく確認できる場所にまとめることを目的としています。v0.1では選手図鑑を中心に、情報量を限定して公開しています。
+
+## 現在の機能
+
+- Chelsea Hubの概要とコンテンツ入口を表示するトップページ
+- 掲載選手を確認できる選手一覧
+- 3選手それぞれの詳細ページ
+- 登録されていない選手URLに対する専用404表示
+- スマートフォンを含む画面幅に応じたレイアウト
+
+スタッフ図鑑、クラブ情報、試合情報などは今後の候補であり、現在は未実装です。
+
+## 掲載選手
+
+- Cole Palmer
+- Moises Caicedo
+- Reece James
+
+## 技術構成
+
+- Next.js 16（App Router）
+- React 19
+- TypeScript
+- Tailwind CSS 4
+- ESLint
+- Vercel
+
+## ローカルでの起動方法
+
+Node.jsとnpmを用意し、リポジトリを取得したディレクトリで次を実行します。
 
 ```bash
+npm ci
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+ブラウザで http://localhost:3000/ を開いてください。
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+品質確認用のコマンドは次のとおりです。
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run lint
+npm run build
+```
 
-## Learn More
+## 主なURL
 
-To learn more about Next.js, take a look at the following resources:
+| URL | 内容 |
+| --- | --- |
+| `/` | トップページ |
+| `/players` | 選手一覧 |
+| `/players/cole-palmer` | Cole Palmerの詳細 |
+| `/players/moises-caicedo` | Moises Caicedoの詳細 |
+| `/players/reece-james` | Reece Jamesの詳細 |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## 情報源と確認日の管理方針
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+選手情報はChelsea FC公式プロフィールなど、出典を確認できる情報を優先します。各選手データには参照先URLと情報確認日を保持し、詳細ページに表示します。情報は確認日時点のものであり、移籍、背番号、契約状況などの変更が即時に反映されるとは限りません。
 
-## Deploy on Vercel
+## 写真とクラブエンブレムについて
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+現在は、肖像権、著作権、商標権など第三者の権利を尊重し、利用条件が明確でない選手写真やChelsea FCのクラブエンブレムを使用していません。選手画像の代わりに氏名のイニシャルを表示しています。
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 今後の予定
+
+- 掲載選手と選手情報の拡充
+- 情報源と確認日の継続的な更新
+- アクセシビリティとレスポンシブ表示の改善
+- スタッフ図鑑やクラブ情報の設計・実装検討
+
+## 非公式・非提携表示
+
+Chelsea Hubは個人が制作した非公式・非営利のファンプロジェクトです。Chelsea Football Clubおよびその関連団体とは、提携、承認、後援その他の関係はありません。第三者の商標その他の権利は、各権利者に帰属します。
+
+## ライセンス
+
+MIT Licenseは、このリポジトリ内の自作ソースコードにのみ適用されます。第三者の商標、名称、データ、画像、リンク先コンテンツなどに関する権利を付与するものではありません。ライセンス本文は[LICENSE](./LICENSE)を参照してください。
