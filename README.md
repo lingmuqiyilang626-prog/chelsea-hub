@@ -31,6 +31,7 @@ Chelsea Hubは、Chelsea Football Clubの選手やクラブ情報を日本語で
 - TypeScript
 - Tailwind CSS 4
 - ESLint
+- Supabase
 - Vercel
 
 ## ローカルでの起動方法
@@ -39,6 +40,18 @@ Node.jsとnpmを用意し、リポジトリを取得したディレクトリで�
 
 ```bash
 npm ci
+```
+
+起動前に`.env.example`を参考にルートへ`.env.local`を作成し、リンク済みSupabaseプロジェクトの公開読み取り用設定を指定してください。値はGitへコミットしません。
+
+```dotenv
+SUPABASE_URL=
+SUPABASE_PUBLISHABLE_KEY=
+```
+
+その後、開発サーバーを起動します。
+
+```bash
 npm run dev
 ```
 
@@ -50,6 +63,10 @@ npm run dev
 npm run lint
 npm run build
 ```
+
+## Supabase migration
+
+DB変更と初期公開データは`supabase/migrations`で管理します。適用前に`npx supabase migration list`と`npx supabase db push --dry-run`で対象を確認し、確認後に`npx supabase db push`を実行します。既存migrationは変更せず、新しい変更は新規migrationとして追加します。
 
 ## 主なURL
 

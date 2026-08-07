@@ -2,21 +2,22 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { getPlayerBySlug, players } from "@/data/players";
+import { getPlayerBySlug, getPlayerSlugs } from "@/data/players";
 
 type PlayerPageProps = {
   params: Promise<{ slug: string }>;
 };
 
-export function generateStaticParams() {
-  return players.map((player) => ({ slug: player.slug }));
+export async function generateStaticParams() {
+  const slugs = await getPlayerSlugs();
+  return slugs.map((slug) => ({ slug }));
 }
 
 export async function generateMetadata({
   params,
 }: PlayerPageProps): Promise<Metadata> {
   const { slug } = await params;
-  const player = getPlayerBySlug(slug);
+  const player = await getPlayerBySlug(slug);
 
   if (!player) {
     return { title: "選手が見つかりません" };
@@ -30,7 +31,7 @@ export async function generateMetadata({
 
 export default async function PlayerPage({ params }: PlayerPageProps) {
   const { slug } = await params;
-  const player = getPlayerBySlug(slug);
+  const player = await getPlayerBySlug(slug);
 
   if (!player) {
     notFound();
