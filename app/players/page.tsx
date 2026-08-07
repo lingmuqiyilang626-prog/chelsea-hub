@@ -2,14 +2,16 @@ import type { Metadata } from "next";
 import Link from "next/link";
 
 import { PlayerCard } from "@/components/player-card";
-import { players } from "@/data/players";
+import { getPlayers } from "@/data/players";
 
 export const metadata: Metadata = {
   title: "選手図鑑",
   description: "Chelsea Hubに掲載している選手の一覧です。",
 };
 
-export default function PlayersPage() {
+export default async function PlayersPage() {
+  const players = await getPlayers();
+
   return (
     <main className="min-h-screen bg-slate-950 text-white">
       <header className="border-b border-white/10 bg-[#001489]">
