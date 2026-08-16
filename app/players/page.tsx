@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 
-import { PlayerCard } from "@/components/player-card";
+import { PlayerCatalog } from "@/components/player-catalog";
 import { getPlayers } from "@/data/players";
 
 export const metadata: Metadata = {
@@ -40,15 +40,12 @@ export default async function PlayersPage() {
           </p>
           <h1 className="mt-3 text-4xl font-bold sm:text-5xl">選手図鑑</h1>
           <p className="mt-5 max-w-2xl leading-7 text-slate-300">
-            Chelsea Hub v0.1で紹介する3名のプロフィールです。カードを選ぶと詳細を確認できます。
+            Chelsea男子トップチームの登録選手{players.length}
+            名を掲載しています。カードを選ぶと詳細を確認できます。
           </p>
         </div>
 
-        <div className="mt-12 grid grid-cols-1 gap-6 md:grid-cols-3">
-          {players.map((player) => (
-            <PlayerCard key={player.slug} player={player} />
-          ))}
-        </div>
+        <PlayerCatalog players={players} />
       </section>
     </main>
   );

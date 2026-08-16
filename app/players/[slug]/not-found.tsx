@@ -7,7 +7,7 @@ export default function PlayerNotFound() {
         <p className="font-semibold tracking-widest text-blue-400">404</p>
         <h1 className="mt-3 text-4xl font-bold">選手が見つかりません</h1>
         <p className="mt-5 leading-7 text-slate-300">
-          指定された選手はChelsea Hub v0.1に登録されていません。
+          指定された選手は現在のChelsea Hubに登録されていません。
         </p>
         <Link
           href="/players"
