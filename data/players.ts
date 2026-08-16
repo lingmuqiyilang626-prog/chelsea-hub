@@ -9,16 +9,23 @@ export type Player = {
   name: string;
   initials: string;
   position: string;
-  nationality: string;
+  positionGroup: PositionGroup;
+  nationality: string | null;
   squadNumber: number | null;
   dateOfBirth: string | null;
   heightCm: number | null;
   joinedAt: string | null;
   contractUntil: string | null;
-  summary: string;
+  summary: string | null;
   sourceUrl: string;
   checkedAt: string;
 };
+
+export type PositionGroup =
+  | "goalkeeper"
+  | "defender"
+  | "midfielder"
+  | "forward";
 
 type PersonRow = {
   display_name: string;
@@ -31,6 +38,7 @@ type ProfileRow = {
   height_cm: number | null;
   nationality: string | null;
   person_id: string;
+  position_group: PositionGroup | null;
   primary_position: string | null;
   source_id: string | null;
   summary: string | null;
@@ -75,6 +83,38 @@ function createInitials(name: string) {
   }
 
   return `${parts[0][0]}${parts.at(-1)?.[0]}`.toUpperCase();
+}
+
+const japaneseNationalityByCanonicalValue: Record<string, string> = {
+  American: "アメリカ合衆国",
+  Argentinian: "アルゼンチン",
+  Belgian: "ベルギー",
+  Brazilian: "ブラジル",
+  Dutch: "オランダ",
+  Ecuadorian: "エクアドル",
+  English: "イングランド",
+  French: "フランス",
+  Italian: "イタリア",
+  Portuguese: "ポルトガル",
+  Senegalese: "セネガル",
+  Spanish: "スペイン",
+  Ukrainian: "ウクライナ",
+};
+
+function toJapaneseNationality(value: string | null, personId: string) {
+  if (!value?.trim()) {
+    return null;
+  }
+
+  const translated = japaneseNationalityByCanonicalValue[value];
+
+  if (!translated) {
+    throw new Error(
+      `Missing Japanese nationality label for public player ${personId}: ${value}`,
+    );
+  }
+
+  return translated;
 }
 
 function toCheckedAt(retrievedAt: string | null, personId: string) {
@@ -139,13 +179,12 @@ const loadPlayers = cache(async (): Promise<Player[]> => {
   }
 
   const { data: squadRoleData, error: squadRoleError } = await supabase
-    .from("role_assignments")
+    .from("current_public_role_assignments")
     .select("person_id, valid_from, valid_to")
     .eq("club_id", club.id)
     .eq("team_id", team.id)
     .eq("role_type", "player")
-    .eq("assignment_type", "squad")
-    .is("superseded_at", null);
+    .eq("assignment_type", "squad");
   throwOnSupabaseError("Chelsea First Team player assignments", squadRoleError);
 
   const squadRoles = squadRoleData as RoleRow[];
@@ -170,16 +209,15 @@ const loadPlayers = cache(async (): Promise<Player[]> => {
       supabase
         .from("player_profiles")
         .select(
-          "person_id, nationality, date_of_birth, height_cm, primary_position, summary, source_id",
+          "person_id, nationality, date_of_birth, height_cm, primary_position, position_group, summary, source_id",
         )
         .in("person_id", personIds),
       supabase
-        .from("role_assignments")
+        .from("current_public_role_assignments")
         .select("person_id, valid_from, valid_to")
         .eq("club_id", club.id)
         .eq("role_type", "player")
         .eq("assignment_type", "contracted")
-        .is("superseded_at", null)
         .in("person_id", personIds),
       supabase
         .from("current_public_squad_numbers")
@@ -252,13 +290,18 @@ const loadPlayers = cache(async (): Promise<Player[]> => {
       name,
       initials: createInitials(name),
       position: requireText(profile.primary_position, "position", personId),
-      nationality: requireText(profile.nationality, "nationality", personId),
+      positionGroup: requireText(
+        profile.position_group,
+        "position group",
+        personId,
+      ) as PositionGroup,
+      nationality: toJapaneseNationality(profile.nationality, personId),
       squadNumber: squadNumberByPersonId.get(personId)?.squad_number ?? null,
       dateOfBirth: profile.date_of_birth,
       heightCm: profile.height_cm,
       joinedAt: squadRole.valid_from,
       contractUntil: contractByPersonId.get(personId)?.valid_to ?? null,
-      summary: requireText(profile.summary, "summary", personId),
+      summary: profile.summary?.trim() || null,
       sourceUrl: requireText(source.url, "profile source URL", personId),
       checkedAt: toCheckedAt(source.retrieved_at, personId),
     };

@@ -25,7 +25,7 @@ export async function generateMetadata({
 
   return {
     title: player.name,
-    description: player.summary,
+    description: player.summary ?? `${player.name}の選手プロフィールです。`,
   };
 }
 
@@ -89,7 +89,9 @@ export default async function PlayerPage({ params }: PlayerPageProps) {
             <h1 className="mt-3 text-4xl font-bold sm:text-5xl">
               {player.name}
             </h1>
-            <p className="mt-6 leading-8 text-slate-300">{player.summary}</p>
+            {player.summary && (
+              <p className="mt-6 leading-8 text-slate-300">{player.summary}</p>
+            )}
 
             <dl className="mt-8 grid gap-px overflow-hidden rounded-2xl border border-white/10 bg-white/10 sm:grid-cols-2">
               {details.map((detail, index) => (

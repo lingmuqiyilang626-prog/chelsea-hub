@@ -28,9 +28,11 @@ export function PlayerCard({ player }: PlayerCardProps) {
             {player.position}
           </p>
           <h2 className="mt-2 text-2xl font-bold text-white">{player.name}</h2>
-          <p className="mt-3 text-sm leading-6 text-slate-300">
-            {player.summary}
-          </p>
+          {player.summary && (
+            <p className="mt-3 text-sm leading-6 text-slate-300">
+              {player.summary}
+            </p>
+          )}
           <p className="mt-5 font-semibold text-blue-300">プロフィールを見る →</p>
         </div>
       </article>
