@@ -6,13 +6,13 @@ Chelsea Hubは、Chelsea Football Clubの選手やクラブ情報を日本語で
 
 ## 制作目的
 
-チェルシーに関する基本情報を、見やすく確認できる場所にまとめることを目的としています。v0.1では選手図鑑を中心に、情報量を限定して公開しています。
+チェルシーに関する基本情報を、見やすく確認できる場所にまとめることを目的としています。現在は男子トップチームの選手図鑑を中心に公開しています。
 
 ## 現在の機能
 
 - Chelsea Hubの概要とコンテンツ入口を表示するトップページ
-- 掲載選手を確認できる選手一覧
-- 3選手それぞれの詳細ページ
+- 名前検索とポジション絞り込みに対応した選手一覧
+- Supabaseから取得した男子トップチーム42名の詳細ページ
 - 登録されていない選手URLに対する専用404表示
 - スマートフォンを含む画面幅に応じたレイアウト
 
@@ -20,9 +20,7 @@ Chelsea Hubは、Chelsea Football Clubの選手やクラブ情報を日本語で
 
 ## 掲載選手
 
-- Cole Palmer
-- Moises Caicedo
-- Reece James
+2026-08-16時点でChelsea FC公式男子プロフィール一覧のmensteam分類に含まれる42名を掲載しています。選手の所属やプロフィール情報は基準日時点のものです。
 
 ## 技術構成
 
@@ -73,10 +71,9 @@ DB変更と初期公開データは`supabase/migrations`で管理します。適
 | URL | 内容 |
 | --- | --- |
 | `/` | トップページ |
-| `/players` | 選手一覧 |
+| `/players` | 男子トップチーム42名の一覧・検索・ポジション絞り込み |
 | `/players/cole-palmer` | Cole Palmerの詳細 |
-| `/players/moises-caicedo` | Moises Caicedoの詳細 |
-| `/players/reece-james` | Reece Jamesの詳細 |
+| `/players/robert-sanchez` | Robert Sanchezの詳細 |
 
 ## 情報源と確認日の管理方針
 
