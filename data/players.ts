@@ -17,9 +17,25 @@ export type Player = {
   joinedAt: string | null;
   contractUntil: string | null;
   summary: string | null;
+  squadNumberHistory: SquadNumberHistoryEntry[];
   sourceUrl: string;
   checkedAt: string;
 };
+
+export type SquadNumberHistoryEntry = {
+  squadNumber: number;
+  validFrom: string;
+  validTo: string | null;
+  isCurrent: boolean;
+  changeType: SquadNumberChangeType;
+  source: {
+    publisher: string;
+    url: string;
+    checkedAt: string;
+  };
+};
+
+export type SquadNumberChangeType = "actual_change" | "correction";
 
 export type PositionGroup =
   | "goalkeeper"
@@ -52,6 +68,7 @@ type RoleRow = {
 
 type SourceRow = {
   id: string;
+  publisher: string | null;
   retrieved_at: string | null;
   url: string;
 };
@@ -59,6 +76,13 @@ type SourceRow = {
 type SquadNumberRow = {
   person_id: string;
   squad_number: number;
+  valid_from: string;
+  valid_to: string | null;
+};
+
+type SquadNumberHistoryRow = SquadNumberRow & {
+  change_type: string;
+  source_id: string | null;
 };
 
 function throwOnSupabaseError(context: string, error: { message: string } | null) {
@@ -117,18 +141,151 @@ function toJapaneseNationality(value: string | null, personId: string) {
   return translated;
 }
 
-function toCheckedAt(retrievedAt: string | null, personId: string) {
+function toCheckedAt(retrievedAt: string | null, context: string) {
   if (!retrievedAt) {
-    throw new Error(`Missing profile source retrieved_at for public player ${personId}`);
+    throw new Error(`Missing source retrieved_at for ${context}`);
   }
 
   const checkedAt = retrievedAt.slice(0, 10);
 
   if (!/^\d{4}-\d{2}-\d{2}$/.test(checkedAt)) {
-    throw new Error(`Invalid profile source retrieved_at for public player ${personId}`);
+    throw new Error(`Invalid source retrieved_at for ${context}`);
   }
 
   return checkedAt;
+}
+
+function requireDateOnly(value: string | null, field: string, personId: string) {
+  if (!value || !/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    throw new Error(`Missing or invalid ${field} for public player ${personId}`);
+  }
+
+  return value;
+}
+
+function toSquadNumberChangeType(
+  value: string,
+  personId: string,
+): SquadNumberChangeType {
+  if (value !== "actual_change" && value !== "correction") {
+    throw new Error(
+      `Invalid squad number change_type for public player ${personId}: ${value}`,
+    );
+  }
+
+  return value;
+}
+
+function createSquadNumberHistoryByPersonId(
+  rows: SquadNumberHistoryRow[],
+  currentRows: SquadNumberRow[],
+  sourceById: Map<string, SourceRow>,
+) {
+  const currentKeyByPersonId = new Map<string, string>();
+
+  for (const current of currentRows) {
+    const validFrom = requireDateOnly(
+      current.valid_from,
+      "current squad number valid_from",
+      current.person_id,
+    );
+    const key = `${current.squad_number}:${validFrom}:${current.valid_to ?? ""}`;
+
+    if (currentKeyByPersonId.has(current.person_id)) {
+      throw new Error(
+        `Duplicate current squad number for public player ${current.person_id}`,
+      );
+    }
+
+    currentKeyByPersonId.set(current.person_id, key);
+  }
+
+  const rowsByPersonId = new Map<string, SquadNumberHistoryRow[]>();
+
+  for (const row of rows) {
+    const personRows = rowsByPersonId.get(row.person_id) ?? [];
+    personRows.push(row);
+    rowsByPersonId.set(row.person_id, personRows);
+  }
+
+  const historyByPersonId = new Map<string, SquadNumberHistoryEntry[]>();
+
+  for (const [personId, personRows] of rowsByPersonId) {
+    const sortedRows = [...personRows].sort((left, right) =>
+      left.valid_from.localeCompare(right.valid_from),
+    );
+    let previousValidTo: string | null | undefined;
+
+    const entries = sortedRows.map((row) => {
+      const validFrom = requireDateOnly(
+        row.valid_from,
+        "squad number valid_from",
+        personId,
+      );
+      const validTo = row.valid_to
+        ? requireDateOnly(row.valid_to, "squad number valid_to", personId)
+        : null;
+
+      if (
+        !Number.isInteger(row.squad_number) ||
+        row.squad_number < 1 ||
+        row.squad_number > 99
+      ) {
+        throw new Error(`Invalid squad number for public player ${personId}`);
+      }
+
+      if (validTo && validTo <= validFrom) {
+        throw new Error(`Invalid squad number period for public player ${personId}`);
+      }
+
+      if (previousValidTo === null || (previousValidTo && previousValidTo > validFrom)) {
+        throw new Error(`Overlapping squad number periods for public player ${personId}`);
+      }
+
+      previousValidTo = validTo;
+
+      const sourceId = requireText(row.source_id, "squad number source", personId);
+      const source = sourceById.get(sourceId);
+
+      if (!source) {
+        throw new Error(`Missing public squad number source row for ${personId}`);
+      }
+
+      const currentKey = `${row.squad_number}:${validFrom}:${validTo ?? ""}`;
+
+      return {
+        squadNumber: row.squad_number,
+        validFrom,
+        validTo,
+        isCurrent: currentKeyByPersonId.get(personId) === currentKey,
+        changeType: toSquadNumberChangeType(row.change_type, personId),
+        source: {
+          publisher: requireText(source.publisher, "source publisher", personId),
+          url: requireText(source.url, "squad number source URL", personId),
+          checkedAt: toCheckedAt(
+            source.retrieved_at,
+            `public player ${personId} squad number`,
+          ),
+        },
+      };
+    });
+
+    const currentKey = currentKeyByPersonId.get(personId);
+
+    if (currentKey && !entries.some((entry) => entry.isCurrent)) {
+      throw new Error(`Current squad number has no history row for ${personId}`);
+    }
+
+    historyByPersonId.set(personId, entries);
+  }
+
+  for (const personId of currentKeyByPersonId.keys()) {
+    if (!historyByPersonId.get(personId)?.some((entry) => entry.isCurrent)) {
+      throw new Error(`Current squad number has no history row for ${personId}`);
+    }
+  }
+
+  return historyByPersonId;
 }
 
 function indexUniqueRows<T>(
@@ -200,7 +357,13 @@ const loadPlayers = cache(async (): Promise<Player[]> => {
   );
   const personIds = [...squadRoleByPersonId.keys()];
 
-  const [peopleResult, profilesResult, contractsResult, numbersResult] =
+  const [
+    peopleResult,
+    profilesResult,
+    contractsResult,
+    numbersResult,
+    squadNumberHistoryResult,
+  ] =
     await Promise.all([
       supabase
         .from("public_people")
@@ -221,20 +384,36 @@ const loadPlayers = cache(async (): Promise<Player[]> => {
         .in("person_id", personIds),
       supabase
         .from("current_public_squad_numbers")
-        .select("person_id, squad_number")
+        .select("person_id, squad_number, valid_from, valid_to")
         .eq("team_id", team.id)
         .in("person_id", personIds),
+      supabase
+        .from("squad_number_history")
+        .select(
+          "person_id, squad_number, valid_from, valid_to, change_type, source_id",
+        )
+        .eq("team_id", team.id)
+        .eq("visibility", "public")
+        .is("superseded_at", null)
+        .in("person_id", personIds)
+        .order("valid_from", { ascending: true }),
     ]);
 
   throwOnSupabaseError("public people", peopleResult.error);
   throwOnSupabaseError("public player profiles", profilesResult.error);
   throwOnSupabaseError("public player contracts", contractsResult.error);
   throwOnSupabaseError("current public squad numbers", numbersResult.error);
+  throwOnSupabaseError(
+    "public squad number history",
+    squadNumberHistoryResult.error,
+  );
 
   const people = peopleResult.data as PersonRow[];
   const profiles = profilesResult.data as ProfileRow[];
   const contracts = contractsResult.data as RoleRow[];
   const squadNumbers = numbersResult.data as SquadNumberRow[];
+  const squadNumberHistory =
+    squadNumberHistoryResult.data as SquadNumberHistoryRow[];
   const personById = indexUniqueRows(people, (person) => person.id, "person row");
   const profileByPersonId = indexUniqueRows(
     profiles,
@@ -252,19 +431,30 @@ const loadPlayers = cache(async (): Promise<Player[]> => {
     "current squad number",
   );
 
-  const sourceIds = profiles.map((profile) =>
-    requireText(profile.source_id, "profile source", profile.person_id),
-  );
+  const sourceIds = [
+    ...profiles.map((profile) =>
+      requireText(profile.source_id, "profile source", profile.person_id),
+    ),
+    ...squadNumberHistory.map((history) =>
+      requireText(history.source_id, "squad number source", history.person_id),
+    ),
+  ];
   const { data: sourceData, error: sourceError } = await supabase
     .from("sources")
-    .select("id, url, retrieved_at")
-    .in("id", sourceIds);
-  throwOnSupabaseError("public profile sources", sourceError);
+    .select("id, url, publisher, retrieved_at")
+    .eq("visibility", "public")
+    .in("id", [...new Set(sourceIds)]);
+  throwOnSupabaseError("public player sources", sourceError);
 
   const sourceById = indexUniqueRows(
     sourceData as SourceRow[],
     (source) => source.id,
-    "profile source row",
+    "source row",
+  );
+  const squadNumberHistoryByPersonId = createSquadNumberHistoryByPersonId(
+    squadNumberHistory,
+    squadNumbers,
+    sourceById,
   );
 
   const players = personIds.map((personId): Player => {
@@ -302,8 +492,12 @@ const loadPlayers = cache(async (): Promise<Player[]> => {
       joinedAt: squadRole.valid_from,
       contractUntil: contractByPersonId.get(personId)?.valid_to ?? null,
       summary: profile.summary?.trim() || null,
+      squadNumberHistory: squadNumberHistoryByPersonId.get(personId) ?? [],
       sourceUrl: requireText(source.url, "profile source URL", personId),
-      checkedAt: toCheckedAt(source.retrieved_at, personId),
+      checkedAt: toCheckedAt(
+        source.retrieved_at,
+        `public player ${personId} profile`,
+      ),
     };
   });
 

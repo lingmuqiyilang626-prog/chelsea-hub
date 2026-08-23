@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { SquadNumberHistory } from "@/components/squad-number-history";
 import { getPlayerBySlug, getPlayerSlugs } from "@/data/players";
 
 type PlayerPageProps = {
@@ -130,6 +131,8 @@ export default async function PlayerPage({ params }: PlayerPageProps) {
             </div>
           </div>
         </div>
+
+        <SquadNumberHistory entries={player.squadNumberHistory} />
       </article>
     </main>
   );
