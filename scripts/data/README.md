@@ -7,6 +7,15 @@ digest of the payload's exact bytes. It invokes one `psql` process with `-X`,
 conditionally included payload therefore use one database connection and one
 explicit transaction.
 
+The runner supports Windows PowerShell 5.1 and PowerShell 7. If script execution
+is disabled in Windows PowerShell 5.1, enable it for the current process only:
+
+```powershell
+Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+```
+
+Do not change the machine-wide or current-user execution policy for this task.
+
 Keeping the digest outside the payload avoids a self-referential checksum. Do
 not normalize line endings between hashing and execution.
 

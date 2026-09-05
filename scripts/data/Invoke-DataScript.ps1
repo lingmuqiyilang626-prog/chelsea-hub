@@ -15,15 +15,20 @@ $ErrorActionPreference = 'Stop'
 
 $repositoryRoot = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..\..')).Path
 $resolvedPayload = (Resolve-Path -LiteralPath $PayloadPath).Path
-$relativePayload = [System.IO.Path]::GetRelativePath(
-  $repositoryRoot,
-  $resolvedPayload
-).Replace('\', '/')
+$pathComparison = if ([System.IO.Path]::DirectorySeparatorChar -eq '\') {
+  [System.StringComparison]::OrdinalIgnoreCase
+}
+else {
+  [System.StringComparison]::Ordinal
+}
+$repositoryPrefix = $repositoryRoot.TrimEnd([char[]] @('\', '/')) +
+  [System.IO.Path]::DirectorySeparatorChar
 
-if ($relativePayload.StartsWith('../', [System.StringComparison]::Ordinal) -or
-  [System.IO.Path]::IsPathRooted($relativePayload)) {
+if (-not $resolvedPayload.StartsWith($repositoryPrefix, $pathComparison)) {
   throw 'Payload must be inside the repository.'
 }
+
+$relativePayload = $resolvedPayload.Substring($repositoryPrefix.Length).Replace('\', '/')
 
 $checksum = (Get-FileHash -Algorithm SHA256 -LiteralPath $resolvedPayload).Hash.ToLowerInvariant()
 $sqlScriptName = $relativePayload.Replace("'", "''")
