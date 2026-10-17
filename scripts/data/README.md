@@ -84,3 +84,31 @@ For history rows with a source, `recorded_at` must be at or after the source's
 initial `created_at`. Source `created_at` is immutable after registration;
 supplying the identical timestamp is allowed. `retrieved_at` may advance when a
 source is checked again and is not used as the chronology boundary.
+
+## Role assignment history
+
+Role assignments may have an unknown start (`valid_from = NULL`,
+`valid_from_precision = 'unknown'`) and a confirmed exclusive end (`valid_to`).
+When both dates are known, `valid_to` must be strictly later than `valid_from`.
+The start-precision constraint is unchanged. Do not substitute an announcement
+or observation date for an unknown effective date without supporting evidence.
+
+The existing role-assignment GiST exclusion constraint applies only to
+unsuperseded rows with a known `valid_from`. Unknown-start rows remain outside
+that constraint, so it does not prevent their logical duplicates or overlaps.
+NULL means the start is unknown; it does not assert membership from the
+infinite past. Do not remove the known-start predicate and silently reinterpret
+unknown dates as established unbounded membership.
+
+The current view already accepts a NULL start and requires
+`current_date < valid_to` when an end is present. A row is therefore no longer
+current on its exclusive end date. This operational filter is not proof of
+membership at every historical date before an unknown start.
+
+`role_assignments.superseded_at` may first be set from NULL to a timestamp at
+or after `recorded_at`, as enforced by the existing timestamp CHECK. Once set,
+only the identical timestamp is accepted; clearing, advancing, or moving it
+backward raises SQLSTATE `23514` with constraint name
+`role_assignments_superseded_at_immutable`. Preserve the original row and add a
+new `correction` row when correcting a previously recorded period. This guard
+protects the supersession timestamp, not all other columns of the history row.

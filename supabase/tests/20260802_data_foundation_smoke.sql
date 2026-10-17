@@ -384,10 +384,7 @@ insert into smoke_test_results values (
 );
 
 do $smoke$
-declare
-  rejected boolean := false;
 begin
-  begin
     insert into public.role_assignments (
       id,
       person_id,
@@ -416,21 +413,22 @@ begin
       '00000000-0000-4000-8000-000000000401',
       'private'
     );
-  exception
-    when check_violation then
-      rejected := true;
-  end;
-
-  if not rejected then
-    raise exception 'Smoke test failed: role assignment with valid_to only was accepted.';
+  if not exists (
+    select 1 from public.role_assignments
+    where id = '00000000-0000-4000-8000-000000000602'
+      and valid_from is null
+      and valid_from_precision = 'unknown'
+      and valid_to = date '2026-07-01'
+  ) then
+    raise exception 'Smoke test failed: role assignment with unknown start and known end was not retained.';
   end if;
 end
 $smoke$;
 
 insert into smoke_test_results values (
-  '11_valid_to_without_valid_from_rejected',
+  '11_valid_to_without_valid_from_allowed',
   'PASS',
-  'A role assignment with valid_to but no valid_from was rejected.'
+  'A role assignment with valid_to and an unknown valid_from was accepted.'
 );
 
 set local role anon;
@@ -786,9 +784,9 @@ from (
       'A superseded_at value before recorded_at was rejected.'
     ),
     (
-      '11_valid_to_without_valid_from_rejected',
+      '11_valid_to_without_valid_from_allowed',
       'PASS',
-      'A role assignment with valid_to but no valid_from was rejected.'
+      'A role assignment with valid_to and an unknown valid_from was accepted.'
     ),
     (
       '12_rollback_verified',
